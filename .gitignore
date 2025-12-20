@@ -1,3 +1,8 @@
+# Custom project ignores
+5etools-src/
+.bot_token
+testing.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
