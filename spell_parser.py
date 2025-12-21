@@ -1,9 +1,14 @@
 import json
 import re
 import traceback
+import discord
 
-spell_template_desc_md_path = 'templates/spell_template.md'
-spell_template_footer_md_path = 'templates/spell_template.md'
+spell_template_desc_md_path = 'templates/spell_template_description.md'
+spell_template_footer_md_path = 'templates/spell_template_footer.md'
+
+blank_char = '\u200b'
+max_field_length = 1024
+
 
 class SpellBook():
 
@@ -67,14 +72,23 @@ class SpellBook():
             embed_dict["color"] = self.get_school_color(spell.get("school"))
 
             embed_dict["description"] = self._get_spell_description_md(spell)
+            print(embed_dict["description"])
+
+            data_fields = self._get_spell_data_fields(spell.get("entries"))
+            if not data_fields:
+                print("DEBUG: Unsupported spell data entries detected.")
+                raise Exception("Spell data contains unsupported entries.")
 
             if "entriesHigherLevel" in spell:
-                fields["upcast"] = "\n**Upcast**: " + "\n".join(spell.get("entriesHigherLevel")[0].get("entries"))
-            else:
-                fields["upcast"] = ""
+                data_fields.append({"name": blank_char, "value": "\n**Upcast**: " + "\n".join(spell.get("entriesHigherLevel")[0].get("entries")), "inline": False})
+            
+            embed_dict["fields"] = data_fields
 
-            embed_dict["footer"] = {"text": self.spell_template_footer_md.replace("{{{page}}}", spell.get("page"))}
+            embed_dict["footer"] = {"text": self.spell_template_footer_md.replace("{page}", str(spell.get("page")))}
 
+            # To my knowledge, only the Reshape Reality part of Wish exceeds the 1024 character limit
+            return discord.Embed.from_dict(self._truncate_field_data(embed_dict))
+        
         except Exception as e:
             print(traceback.format_exc())
             return f"Error generating markdown for spell {name}: {str(e)}"
@@ -94,7 +108,7 @@ class SpellBook():
                 if spell.get("time")[0].get("number") > 1:
                     desc_fields["casting_time"] += "s"
             if "condition" in spell.get("time")[0]:
-                desc_fields["casting_time"] += f", ({spell.get("time")[0].get("condition")})"
+                desc_fields["casting_time"] += f" ({spell.get("time")[0].get("condition")})"
             if "meta" in spell and "ritual" in spell.get("meta"):
                 desc_fields["casting_time"] += " or **Ritual**"
 
@@ -131,18 +145,40 @@ class SpellBook():
             print(traceback.format_exc())
             return f"Error generating markdown description for spell {spell.get("name")}: {str(e)}"
 
-    def _get_spell_data(self, entries):
-        data_fields = []
 
-        # TODO contine here
+    def _get_spell_data_fields(self, entries):
+        data_fields = []
         for entry in entries:
             if isinstance(entry, dict):
-                if "type" in entry and entry["type"] == "entries":
-                    data_fields.extend(entry.get("entries", []))
-                elif "type" in entry and entry["type"] == "entry":
-                    data_fields.append(entry.get("entry", ""))
+                # Aside from string entries, the PHB'24 data source dicts of type "table", "list" and "entries"
+                local_fields = []
+                if entry.get("type") == "table":
+                    col_width = len(entry.get("colLabels"))
+                    # maximum number of inline fields in Discord embeds
+                    if col_width > 3:
+                        return None
+                    for i in range(col_width):
+                        local_fields.append({"name": entry.get("colLabels")[i], "value": "\n".join([val[i] for val in entry.get("rows")]), "inline": True})
+                    
+                elif entry.get("type") == "list":
+                    for entry_item in entry.get("items"):
+                        local_fields.append({"name": entry_item.get("name"), "value": "\n".join(entry_item.get("entries")), "inline": False})
 
+                elif entry.get("type") == "entries":
+                    local_fields.append({"name": entry.get("name"), "value": "\n".join(entry.get("entries")), "inline": False})
+
+                data_fields.extend(local_fields)
+            else:
+                field = {"name": blank_char, "value": entry, "inline": False}
+                data_fields.append(field)
+        
         return data_fields
+
+    def _truncate_field_data(self, embed_dict):
+        for field in embed_dict.get("fields", []):
+            if len(field.get("value")) > max_field_length:
+                field["value"] = field["value"][:max_field_length - 3] + "..."
+        return embed_dict
 
     def get_school_color(self, school):
         school_colors = {

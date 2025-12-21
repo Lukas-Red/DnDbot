@@ -12,8 +12,11 @@ class SpellCommands(commands.Cog):
     @commands.command()
     async def spell(self, ctx, *args):
         arg = ' '.join(args)
-        spell_info = self.spellbook.get_spell_markdown(arg)
-        await ctx.send(spell_info)
+        spell_info = self.spellbook.get_spell_embed_dict(arg)
+        if isinstance(spell_info, discord.Embed):
+            await ctx.send(embed=spell_info)
+        else:
+            await ctx.send(spell_info)  
 
 
 async def setup(bot):

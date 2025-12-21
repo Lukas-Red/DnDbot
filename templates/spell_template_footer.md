@@ -1,1 +1,1 @@
-**Source**: PHB'24 page {page}
+Source: PHB'24 page {page}

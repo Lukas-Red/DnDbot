@@ -9,7 +9,6 @@ import spell_parser
 bot_token = open('.bot_token', 'r').read().strip()
 cog__file_prefix = 'cog_'
 prefix = '!'
-blank_char = '\u200b'
 
 
 intent = discord.Intents.default()
