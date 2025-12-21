@@ -12,7 +12,7 @@ class SpellCommands(commands.Cog):
     @commands.command()
     async def spell(self, ctx, *args):
         arg = ' '.join(args)
-        spell_info = self.spellbook.get_spell(arg)
+        spell_info = self.spellbook.get_spell_markdown(arg)
         await ctx.send(spell_info)
 
 
