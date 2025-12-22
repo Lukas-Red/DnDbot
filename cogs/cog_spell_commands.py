@@ -6,7 +6,7 @@ import spell_parser
 class SpellCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.spellbook = spell_parser.SpellBook('5etools-src/data/spells/spells-xphb.json')
+        self.spellbook = spell_parser.get_instance("spellbook")
 
 
     @commands.command()

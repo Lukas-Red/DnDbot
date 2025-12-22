@@ -5,6 +5,7 @@ import discord
 
 spell_template_desc_md_path = 'templates/spell_template_description.md'
 spell_template_footer_md_path = 'templates/spell_template_footer.md'
+spell_data_path = '5etools-src/data/spells/spells-xphb.json'
 
 blank_char = '\u200b'
 max_field_length = 1024
@@ -12,7 +13,7 @@ max_field_length = 1024
 
 class SpellBook():
 
-    def __init__(self, spell_data_path):
+    def __init__(self):
         self.spells = {}
         self.load_spells(spell_data_path)
         self.spell_template_desc_md = open(spell_template_desc_md_path, 'r').read()
@@ -72,7 +73,6 @@ class SpellBook():
             embed_dict["color"] = self.get_school_color(spell.get("school"))
 
             embed_dict["description"] = self._get_spell_description_md(spell)
-            print(embed_dict["description"])
 
             data_fields = self._get_spell_data_fields(spell.get("entries"))
             if not data_fields:
@@ -216,3 +216,11 @@ def simplify_string(input_string):
     # Remove special characters and convert to lowercase
     simplified = re.sub(r'[^a-zA-Z0-9]', '', input_string).lower()
     return simplified
+
+
+spellbook_instances = {}
+
+def get_instance(instance_name):
+    if instance_name not in spellbook_instances:
+        spellbook_instances[instance_name] = SpellBook()
+    return spellbook_instances[instance_name]

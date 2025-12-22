@@ -8,7 +8,9 @@ import spell_parser
 
 bot_token = open('.bot_token', 'r').read().strip()
 cog__file_prefix = 'cog_'
+cog_files_dir = 'cogs/'
 prefix = '!'
+
 
 
 intent = discord.Intents.default()
@@ -17,11 +19,11 @@ intent.message_content = True
 bot = commands.Bot(command_prefix=prefix, intents=intent)
 
 async def load_cogs():
-    for filename in os.listdir('.'):
+    for filename in os.listdir(cog_files_dir):
         if filename.startswith(cog__file_prefix) and filename.endswith('.py'):
             cog_name = filename[:-3]
             try:
-                await bot.load_extension(cog_name)
+                await bot.load_extension(cog_files_dir.replace('/', '.') + cog_name)
                 print(f'Loaded cog: {cog_name}')
             except Exception as e:
                 print(f'Critical failure: unable to load cog {cog_name}')
