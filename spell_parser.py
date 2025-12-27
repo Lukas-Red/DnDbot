@@ -193,6 +193,9 @@ class SpellBook():
         }
         return school_colors.get(school)
 
+    def cleanup_spell_entry(spell_entry):
+        pass
+
         
 spell_school_mapping = {
     "A": "Abjuration",
