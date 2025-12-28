@@ -80,7 +80,11 @@ class SpellBook():
                 raise Exception("Spell data contains unsupported entries.")
 
             if "entriesHigherLevel" in spell:
-                data_fields.append({"name": blank_char, "value": "\n**Upcast**: " + "\n".join(spell.get("entriesHigherLevel")[0].get("entries")), "inline": False})
+                data_fields.append({
+                    "name": blank_char, 
+                    "value": "\n**Upcast**: " + self.cleanup_spell_entry("\n".join(spell.get("entriesHigherLevel")[0].get("entries"))), 
+                    "inline": False
+                })
             
             embed_dict["fields"] = data_fields
 
@@ -139,7 +143,7 @@ class SpellBook():
             description_md = self.spell_template_desc_md
             for key, value in desc_fields.items():
                 description_md = description_md.replace(f"{{{key}}}", str(value))
-            return description_md
+            return self.cleanup_spell_entry(description_md)
         
         except Exception as e:
             print(traceback.format_exc())
@@ -172,6 +176,8 @@ class SpellBook():
                 field = {"name": blank_char, "value": entry, "inline": False}
                 data_fields.append(field)
         
+        for i in range(len(data_fields)):
+            data_fields[i]["value"] = self.cleanup_spell_entry(data_fields[i].get("value"))
         return data_fields
 
     def _truncate_field_data(self, embed_dict):
@@ -193,8 +199,32 @@ class SpellBook():
         }
         return school_colors.get(school)
 
-    def cleanup_spell_entry(spell_entry):
-        pass
+
+    """
+    Many spell entries contain text formatted as {@.*?}, like {@damage 1d6},
+    which can then be used to run utility functions. This method aims to remove these
+    and replace them with their "display" value.
+    The capture/replace pattern is r"{@\S+ (.+?)(?:\|.*?)?}"
+    Example: "{@variantrule Cover|XPHB}" --> "Cover", 
+    Exceptions: 
+    @variantrule needs to take the last part (to avoid square brackets): "{@variantrule Cone [Area of Effect]|XPHB|Cone}" --> "Cone"
+    @scaledamage and @scaledice need to take the last value: "{@scaledamage 8d8|4-9|1d8}" --> "1d8"
+    @chance needs the first value and append " percent": "{@chance 50|||Extinguished!|No effect}" --> "50 percent"
+    @b put the value in bold: "{@b Red.}" --> "**Red**"
+    @i put the value in italic: "{@i Failed Save:}" --> "*Failed Save:*"
+    """
+    def cleanup_spell_entry(self, spell_entry):
+        cleanup_mappings = [
+            [r"{@variantrule ([a-zA-Z0-9 ]+) [\[\|].*?}", r"\1"],
+            [r"{@scaled\S+ .*?([0-9a-zA-Z]+?)}", r"\1"],
+            [r"{@chance (.+?)(?:\|.*?)?}", r"\1 percent"],
+            [r"{@b (.+?)}", r"**\1**"],
+            [r"{@i (.+?)}", r"*\1*"],
+            [r"{@\S+ (.+?)(?:\|.*?)?}", r"\1"]
+        ]
+        for mapping in cleanup_mappings:
+            spell_entry = re.sub(mapping[0], mapping[1], spell_entry)
+        return spell_entry
 
         
 spell_school_mapping = {
